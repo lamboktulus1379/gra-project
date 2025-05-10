@@ -2,6 +2,10 @@
 
 A RESTful API built with Go following Clean Architecture principles and implementing JWT-based authentication.
 
+## Framework Migration Complete
+
+This project has been successfully migrated from using an internal core framework to using the external [GRA Framework](https://github.com/lamboktulussimamora/gra). This migration provides better maintainability, version control, and easier updates.
+
 ## Project Structure
 
 The project follows Clean Architecture principles with the following layers:
@@ -143,3 +147,115 @@ curl -X GET http://localhost:8080/profile \
 - Role-based authorization
 - API rate limiting
 - Request validation middleware
+
+## Framework Migration
+
+This project initially used an internal core framework package located at `internal/core`. We've now migrated to using the external [GRA Framework](https://github.com/lamboktulussimamora/gra) which provides the same functionality.
+
+### Migration Benefits
+
+- Shared framework development and maintenance
+- Better separation of concerns
+- Easier updates and bug fixes
+- Standardized API across projects
+
+### Migration Steps
+
+1. We added the GRA framework as a dependency:
+   ```bash
+   go get github.com/lamboktulussimamora/gra@v1.0.0
+   ```
+
+2. Updated imports from internal to external package:
+   ```go
+   // Before
+   import "github.com/lamboktulussimamora/gra-project/internal/core"
+   
+   // After
+   import (
+       "github.com/lamboktulussimamora/gra/context"
+       "github.com/lamboktulussimamora/gra/middleware"
+       "github.com/lamboktulussimamora/gra/router"
+       "github.com/lamboktulussimamora/gra/validator"
+   )
+   ```
+
+3. Added a compatibility layer to smooth migration:
+   ```go
+   // Compatibility helper package for migration
+   import "github.com/lamboktulussimamora/gra-project/internal/compatibility"
+   ```
+
+4. Updated function and type references:
+   ```go
+   // Before
+   router := core.New()
+   router.Use(core.LoggingMiddleware())
+   
+   // After
+   r := router.New()
+   r.Use(middleware.Logger())
+   ```
+
+5. Removed the internal core package after verification
+
+### Running the Migration
+
+If you're still using the internal core package, you can run the migration script:
+
+```bash
+./migrate.sh
+```
+
+For a more comprehensive migration, use the full update script which handles all import changes:
+
+```bash
+./full_update.sh
+```
+
+### Testing the Migration
+
+We provide several testing methods to verify the migration:
+
+1. Unit tests in `tests/unit/gra_test.go`
+2. Integration tests in `tests/integration/`
+3. Manual testing checklist in `TEST_PLAN.md`
+
+To run the integration tests:
+
+```bash
+cd tests/integration
+./run_api_tests.sh
+```
+
+## Development Tools
+
+### Cleanup Scripts
+
+During the migration process, various `.bak` files are created as backups. To clean these up, you can use:
+
+```bash
+# Clean up .bak files with interactive prompt
+./cleanup.sh
+
+# Or run the command directly:
+find . -name "*.bak" -delete
+```
+
+The `.gitignore` file has been updated to exclude these backup files from version control.
+
+### Backup Management
+
+The migration process creates a full backup of the project before making changes. These backups are stored in:
+
+```
+backup_YYYYMMDDHHMMSS/
+```
+
+To restore from a backup:
+
+```bash
+cp -R ./backup_YYYYMMDDHHMMSS/* ./
+```
+
+Backup directories are excluded from version control via `.gitignore`.

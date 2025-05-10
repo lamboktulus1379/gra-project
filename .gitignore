@@ -30,6 +30,11 @@ go.work
 # IDE specific files
 .idea/
 .vscode/
+
+# Backup files
+*.bak
+backup_*/
+.vscode/
 *.swp
 *.swo
 

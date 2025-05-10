@@ -1,0 +1,49 @@
+### API Integration Tests
+@baseUrl = http://localhost:8080
+
+### 1. Hello World Test
+# Should return a welcome message
+GET {{baseUrl}}/
+Accept: application/json
+
+### 2. User Registration Test
+# Should register a new user
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "password": "securepassword123"
+}
+
+### 3. Invalid Registration Test
+# Should return validation errors
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+    "first_name": "",
+    "email": "not-an-email",
+    "password": "123"
+}
+
+### 4. User Login Test
+# Should return a JWT token
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+    "email": "john.doe@example.com",
+    "password": "securepassword123"
+}
+
+### 5. Protected Route Test
+# Set the JWT token returned from the login endpoint
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Should access protected content
+GET {{baseUrl}}/api/protected
+Authorization: Bearer {{authToken}}
+Accept: application/json
