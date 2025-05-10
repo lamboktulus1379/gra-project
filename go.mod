@@ -1,3 +1,3 @@
-module github.com/lamboktulus1379/gra-project
+module github.com/lamboktulussimamora/gra-project
 
 go 1.24.2
