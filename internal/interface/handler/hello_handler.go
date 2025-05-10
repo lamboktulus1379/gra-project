@@ -15,7 +15,7 @@ func NewHelloHandler() *HelloHandler {
 // Hello handles requests to the hello endpoint
 func (h *HelloHandler) Hello(w http.ResponseWriter, r *http.Request) {
 	// Return a simple hello response
-	sendJSONResponse(w, http.StatusOK, APIResponse{
+	SendJSONResponse(w, http.StatusOK, APIResponse{
 		Status:  "success",
 		Message: "Hello, World!",
 	})

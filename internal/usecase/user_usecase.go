@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/lamboktulussimamora/gra-project/internal/domain/auth"
 	"github.com/lamboktulussimamora/gra-project/internal/domain/user"
 )
 
@@ -16,15 +17,29 @@ type UserResponse struct {
 	UpdatedAt time.Time
 }
 
+// AuthResponse represents the authentication response with user data and token
+type AuthResponse struct {
+	User  UserResponse
+	Token string
+}
+
 // UserUseCase defines the application use cases for user management
 type UserUseCase struct {
-	userRepo user.Repository
+	userRepo        user.Repository
+	passwordService auth.PasswordService
+	jwtService      auth.JWTService
 }
 
 // NewUserUseCase creates a new user use case instance
-func NewUserUseCase(repo user.Repository) *UserUseCase {
+func NewUserUseCase(
+	repo user.Repository,
+	passwordService auth.PasswordService,
+	jwtService auth.JWTService,
+) *UserUseCase {
 	return &UserUseCase{
-		userRepo: repo,
+		userRepo:        repo,
+		passwordService: passwordService,
+		jwtService:      jwtService,
 	}
 }
 
@@ -44,9 +59,12 @@ func (uc *UserUseCase) Register(firstName, lastName, email, password string) (*U
 		return nil, errors.New("user with this email already exists")
 	}
 
-	// In a real application, you would:
-	// 1. Hash the password
-	// newUser.Password = hash(password)
+	// Hash the password
+	hashedPassword, err := uc.passwordService.HashPassword(password)
+	if err != nil {
+		return nil, errors.New("failed to hash password")
+	}
+	newUser.Password = hashedPassword
 
 	// Save user to repository
 	if err := uc.userRepo.Save(newUser); err != nil {
@@ -63,4 +81,40 @@ func (uc *UserUseCase) Register(firstName, lastName, email, password string) (*U
 	}
 
 	return response, nil
+}
+
+// Login authenticates a user and returns a token
+func (uc *UserUseCase) Login(email, password string) (*AuthResponse, error) {
+	// Find user by email
+	user, err := uc.userRepo.FindByEmail(email)
+	if err != nil {
+		return nil, errors.New("invalid credentials")
+	}
+
+	// Verify password
+	valid, err := uc.passwordService.VerifyPassword(user.Password, password)
+	if err != nil || !valid {
+		return nil, errors.New("invalid credentials")
+	}
+
+	// Generate JWT token
+	token, err := uc.jwtService.GenerateToken(user)
+	if err != nil {
+		return nil, errors.New("failed to generate token")
+	}
+
+	// Create user response
+	userResp := UserResponse{
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
+	// Return auth response with token
+	return &AuthResponse{
+		User:  userResp,
+		Token: token,
+	}, nil
 }

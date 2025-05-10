@@ -1,0 +1,78 @@
+# API Test File for Go Clean Architecture Project
+# Use with REST Client extension in VS Code or JetBrains HTTP Client
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### Hello World (Public Endpoint)
+GET {{baseUrl}}/hello
+Accept: application/json
+
+### Register a New User
+POST {{baseUrl}}/register
+Content-Type: {{contentType}}
+
+{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "password": "secure_password_123"
+}
+
+### Login - Store the token from the response for use in authenticated requests
+# @name login
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+    "email": "john.doe@example.com",
+    "password": "secure_password_123"
+}
+
+### Save the token from the login response
+@authToken = {{login.response.body.data.token}}
+
+### Access Protected Profile Endpoint
+GET {{baseUrl}}/profile
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### Try to access protected endpoint without token (should fail)
+GET {{baseUrl}}/profile
+Accept: application/json
+
+### Try to access protected endpoint with invalid token (should fail)
+GET {{baseUrl}}/profile
+Authorization: Bearer invalid.token.value
+Accept: application/json
+
+### Advanced Examples
+
+### Register another user
+POST {{baseUrl}}/register
+Content-Type: {{contentType}}
+
+{
+    "first_name": "Jane",
+    "last_name": "Smith",
+    "email": "jane.smith@example.com",
+    "password": "another_secure_pw"
+}
+
+### Login with second user
+# @name loginJane
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+    "email": "jane.smith@example.com",
+    "password": "another_secure_pw"
+}
+
+### Save token for second user
+@secondAuthToken = {{loginJane.response.body.data.token}}
+
+### Access profile with second user's token
+GET {{baseUrl}}/profile
+Authorization: Bearer {{secondAuthToken}}
+Accept: application/json

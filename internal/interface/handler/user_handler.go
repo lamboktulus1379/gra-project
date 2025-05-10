@@ -39,29 +39,23 @@ type UserResponseDTO struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
-// APIResponse is a standardized response structure for all API handlers
-type APIResponse struct {
-	Status  string      `json:"status"`          // "success" or "error"
-	Message string      `json:"message"`         // Human-readable message
-	Data    interface{} `json:"data,omitempty"`  // Optional data payload
-	Error   string      `json:"error,omitempty"` // Error message if status is "error"
+// LoginRequest represents the login request data
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-// sendJSONResponse is a helper function to send an APIResponse
-func sendJSONResponse(w http.ResponseWriter, status int, response APIResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+// AuthResponseDTO represents the authentication response data
+type AuthResponseDTO struct {
+	User  UserResponseDTO `json:"user"`
+	Token string          `json:"token"`
 }
 
 // Register handles user registration requests
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Check if the request method is POST
 	if r.Method != http.MethodPost {
-		sendJSONResponse(w, http.StatusMethodNotAllowed, APIResponse{
+		SendJSONResponse(w, http.StatusMethodNotAllowed, APIResponse{
 			Status: "error",
 			Error:  "Method not allowed",
 		})
@@ -71,7 +65,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		SendJSONResponse(w, http.StatusBadRequest, APIResponse{
 			Status: "error",
 			Error:  "Failed to read request body",
 		})
@@ -84,7 +78,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterUserRequest
 	err = json.Unmarshal(body, &req)
 	if err != nil {
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		SendJSONResponse(w, http.StatusBadRequest, APIResponse{
 			Status: "error",
 			Error:  "Invalid request format",
 		})
@@ -95,7 +89,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Call the use case
 	userResp, err := h.userUseCase.Register(req.FirstName, req.LastName, req.Email, req.Password)
 	if err != nil {
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		SendJSONResponse(w, http.StatusBadRequest, APIResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
@@ -112,9 +106,74 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return success response
-	sendJSONResponse(w, http.StatusCreated, APIResponse{
+	SendJSONResponse(w, http.StatusCreated, APIResponse{
 		Status:  "success",
 		Message: "User registered successfully",
+		Data:    responseData,
+	})
+}
+
+// Login handles user login requests
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	// Check if the request method is POST
+	if r.Method != http.MethodPost {
+		SendJSONResponse(w, http.StatusMethodNotAllowed, APIResponse{
+			Status: "error",
+			Error:  "Method not allowed",
+		})
+		return
+	}
+
+	// Read the request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		SendJSONResponse(w, http.StatusBadRequest, APIResponse{
+			Status: "error",
+			Error:  "Failed to read request body",
+		})
+		log.Printf("Error reading request body: %v", err)
+		return
+	}
+	defer r.Body.Close()
+
+	// Parse the JSON request into LoginRequest struct
+	var req LoginRequest
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		SendJSONResponse(w, http.StatusBadRequest, APIResponse{
+			Status: "error",
+			Error:  "Invalid request format",
+		})
+		log.Printf("Error unmarshaling JSON: %v", err)
+		return
+	}
+
+	// Call the use case
+	authResp, err := h.userUseCase.Login(req.Email, req.Password)
+	if err != nil {
+		SendJSONResponse(w, http.StatusUnauthorized, APIResponse{
+			Status: "error",
+			Error:  err.Error(),
+		})
+		return
+	}
+
+	// Convert domain response to DTO
+	responseData := AuthResponseDTO{
+		User: UserResponseDTO{
+			FirstName: authResp.User.FirstName,
+			LastName:  authResp.User.LastName,
+			Email:     authResp.User.Email,
+			CreatedAt: authResp.User.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: authResp.User.UpdatedAt.Format(time.RFC3339),
+		},
+		Token: authResp.Token,
+	}
+
+	// Return success response
+	SendJSONResponse(w, http.StatusOK, APIResponse{
+		Status:  "success",
+		Message: "Login successful",
 		Data:    responseData,
 	})
 }
